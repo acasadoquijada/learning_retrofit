@@ -1,52 +1,40 @@
 package com.example.retofit_app.retrofit;
 
-import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
-
-import com.example.retofit_app.model.Change;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import java.util.List;
+import com.example.retofit_app.model.RSSFeed;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.simplexml.SimpleXmlConverterFactory;
 
-public class Controller implements Callback<List<Change>> {
+public class Controller  implements Callback<RSSFeed> {
 
-    static final String BASE_URL = "https://git.eclipse.org/r/";
+    static final String BASE_URL = "http://vogella.com/";
 
 
-    public void start(){
-        Gson gson = new GsonBuilder()
-                .setLenient()
-                .create();
+    public void start() {
+        Retrofit retrofit = new Retrofit.Builder().baseUrl(BASE_URL)
+                .addConverterFactory(SimpleXmlConverterFactory.create()).build();
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .build();
+        VogellaAPI vogellaAPI = retrofit.create(VogellaAPI.class);
 
-        GerritAPI gerritAPI = retrofit.create(GerritAPI.class);
-
-        Call<List<Change>> call = gerritAPI.loadChanges("status:open");
+        Call<RSSFeed> call = vogellaAPI.loadRSSFeed();
         call.enqueue(this);
     }
 
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
-    public void onResponse(Call<List<Change>> call, Response<List<Change>> response) {
-        if(response.isSuccessful()) {
-            List<Change> changesList = response.body();
-            assert changesList != null;
-            for(int i = 0; i < changesList.size(); i++){
-                Log.d("RETROFIT_", changesList.get(i).getSubject());
+    public void onResponse(Call<RSSFeed> call, Response<RSSFeed> response) {
+        if (response.isSuccessful()) {
+            RSSFeed rss = response.body();
+
+            assert rss != null;
+            Log.d("RETROFIT__","Channel title: " + rss.getChannelTitle());
+
+            for(int i = 0; i < rss.getArticleList().size(); i++){
+                Log.d("RETROFIT__", "Title: " + rss.getArticleList().get(i).getTitle() + " Link: " + rss.getArticleList().get(i).getLink());
             }
         } else {
             System.out.println(response.errorBody());
@@ -54,7 +42,7 @@ public class Controller implements Callback<List<Change>> {
     }
 
     @Override
-    public void onFailure(Call<List<Change>> call, Throwable t) {
+    public void onFailure(Call<RSSFeed> call, Throwable t) {
         t.printStackTrace();
     }
 }
